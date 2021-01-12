@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import * as Permissions from "expo-permissions";
 import { BarCodeScanner } from "expo-barcode-scanner";
+import db from "../config";
+import firebase from "firebase";
 
 export default class TransactionScreen extends React.Component {
   constructor() {
@@ -19,6 +21,7 @@ export default class TransactionScreen extends React.Component {
       scannedBookID: "",
       scannedStudentID: "",
       buttonState: "normal",
+      transactionMessage: "",
     };
   }
 
@@ -48,6 +51,65 @@ export default class TransactionScreen extends React.Component {
       });
     }
   };
+
+  handleTransaction = async () => {
+    var transactionMessage = null;
+    db.collection("books")
+      .doc(this.state.scannedBookID)
+      .get()
+      .then((doc) => {
+        var book = doc.data();
+        if (book.bookAvailability) {
+          this.initiateBookIssue();
+          transactionMessage = "Book Issued";
+        } else {
+          this.initiateBookReturn();
+          transactionMessage = "Book Returned";
+        }
+      });
+
+      this.setState({
+        transactionMessage: transactionMessage
+      })
+  };
+
+  initiateBookIssue = async () => {
+    db.collection("transactions").add({
+      studentID: this.state.scannedStudentID,
+      bookID: this.state.scannedBookID,
+      date: firebase.firestore.Timestamp.now().toDate(),
+      transactionType: "Issue",
+    })
+    db.collection("books").doc(this.state.scannedBookID).update({
+      bookAvailability: false,
+    })
+    db.collection("students").doc(this.state.scannedStudentID).update({
+      booksIsued: firebase.firestore.FieldValue.increment(1)
+    })
+    this.setState({
+      scannedBookID: "",
+      scannedStudentID: "",
+    })
+  }
+
+  initiateBookReturn = async () => {
+    db.collection("transactions").add({
+      studentID: this.state.scannedStudentID,
+      bookID: this.state.scannedBookID,
+      date: firebase.firestore.Timestamp.now().toDate(),
+      transactionType: "Return",
+    })
+    db.collection("books").doc(this.state.scannedBookID).update({
+      bookAvailability: true,
+    })
+    db.collection("students").doc(this.state.scannedStudentID).update({
+      booksIsued: firebase.firestore.FieldValue.increment(-1)
+    })
+    this.setState({
+      scannedBookID: "",
+      scannedStudentID: "",
+    })
+  }
 
   render() {
     const hasCameraPermissions = this.state.hasCameraPermissions;
@@ -119,6 +181,26 @@ export default class TransactionScreen extends React.Component {
               </Text>
             </TouchableOpacity>
           </View>
+          <View>
+            <TouchableOpacity
+              onPress={() => {
+                var transactionMessage = this.handleTransaction();
+              }}
+              style={styles.submitButton}
+            >
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontWeight: "bold",
+                  color: "black",
+                  textAlign: "center",
+                  padding: 10,
+                }}
+              >
+                Submit
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
@@ -144,5 +226,10 @@ const styles = StyleSheet.create({
     height: 40,
     borderWidth: 2,
     borderLeftWidth: 0,
+  },
+  submitButton: {
+    backgroundColor: "green",
+    width: 100,
+    height: 50,
   },
 });
