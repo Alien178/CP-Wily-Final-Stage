@@ -58,23 +58,23 @@ export default class TransactionScreen extends React.Component {
   handleTransaction = async () => {
     var transactionType = await this.checkBookEligibility();
     if (!transactionType) {
-      Alert.alert("The Book does not Exist in the Library")
+      Alert.alert("The Book does not Exist in the Library");
       this.setState({
         scannedBookID: "",
-        scannedStudentID: ""
-      })
+        scannedStudentID: "",
+      });
     } else if (transactionType == "Issue") {
       var isStudentEligible = await this.checkStudentEligibilityForBookIssue();
       if (isStudentEligible) {
         this.initiateBookIssue();
-        Alert.alert("Book has been Issued to the Student")
-      } 
+        Alert.alert("Book has been Issued to the Student");
+      }
     } else {
       var isStudentEligible = await this.checkStudentEligibilityForBookReturn();
       if (isStudentEligible) {
         this.initiateBookReturn();
         Alert.alert("Book has been Returned by the Student to the Library");
-      } 
+      }
     }
   };
 
@@ -121,7 +121,10 @@ export default class TransactionScreen extends React.Component {
   };
 
   checkBookEligibility = async () => {
-    const bookRef = await db.collection("books").where("bookID", "==", this.state.scannedBookID).get();
+    const bookRef = await db
+      .collection("books")
+      .where("bookID", "==", this.state.scannedBookID)
+      .get();
     var transactionType = "";
     if (bookRef.docs.length == 0) {
       transactionType = false;
@@ -133,22 +136,25 @@ export default class TransactionScreen extends React.Component {
         } else {
           transactionType = "Return";
         }
-      })
+      });
     }
 
     return transactionType;
-  }
+  };
 
   checkStudentEligibilityForBookIssue = async () => {
-    const studentRef = await db.collection("students").where("studentID", "==", this.state.scannedStudentID).get();
+    const studentRef = await db
+      .collection("students")
+      .where("studentID", "==", this.state.scannedStudentID)
+      .get();
     var isStudentEligible = "";
     if (studentRef.docs.length == 0) {
       isStudentEligible = false;
       this.setState({
         scannedStudentID: "",
         scannedBookID: "",
-      })
-      Alert.alert("The Student ID does not exist")
+      });
+      Alert.alert("The Student ID does not exist");
     } else {
       studentRef.docs.map((doc) => {
         var student = doc.data();
@@ -159,17 +165,21 @@ export default class TransactionScreen extends React.Component {
           this.setState({
             scannedStudentID: "",
             scannedBookID: "",
-          })
-          Alert.alert("The student has reached max number of Books Issued")
+          });
+          Alert.alert("The student has reached max number of Books Issued");
         }
-      })
+      });
     }
 
     return isStudentEligible;
-  }
+  };
 
   checkStudentEligibilityForBookReturn = async () => {
-    const transactionRef = await db.collection("transactions").where("bookID", "==", this.state.scannedBookID).limit(1).get();
+    const transactionRef = await db
+      .collection("transactions")
+      .where("bookID", "==", this.state.scannedBookID)
+      .limit(1)
+      .get();
     var isStudentEligible = "";
     transactionRef.docs.map((doc) => {
       var transaction = doc.data();
@@ -177,16 +187,16 @@ export default class TransactionScreen extends React.Component {
         isStudentEligible = true;
       } else {
         isStudentEligible = false;
-          this.setState({
-            scannedStudentID: "",
-            scannedBookID: "",
-          })
-          Alert.alert("The book is not Issed by the Student")
+        this.setState({
+          scannedStudentID: "",
+          scannedBookID: "",
+        });
+        Alert.alert("The book is not Issed by the Student");
       }
-    })
+    });
 
     return isStudentEligible;
-  }
+  };
 
   render() {
     const hasCameraPermissions = this.state.hasCameraPermissions;
